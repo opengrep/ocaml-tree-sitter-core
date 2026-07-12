@@ -138,7 +138,7 @@ let simplify_cmd =
     `P "Check out bug reports at
         https://github.com/returntocorp/ocaml-tree-sitter/issues.";
   ] in
-  let info = Term.info ~doc ~man "simplify" in
+  let info = Cmd.info ~doc ~man "simplify" in
   let config grammar output_path =
     Simplify { grammar; output_path }
   in
@@ -146,7 +146,7 @@ let simplify_cmd =
     const config
     $ grammar_term
     $ output_file_term) in
-  (cmdline_term, info)
+  Cmd.v info cmdline_term
 
 let to_js_cmd =
   let input_path_term =
@@ -190,7 +190,7 @@ let to_js_cmd =
     `P "Check out bug reports at
         https://github.com/returntocorp/ocaml-tree-sitter/issues.";
   ] in
-  let info = Term.info ~doc ~man "to-js" in
+  let info = Cmd.info ~doc ~man "to-js" in
   let config input_path output_path sort_choices sort_rules =
     To_JS { input_path; output_path; sort_choices; sort_rules }
   in
@@ -200,7 +200,7 @@ let to_js_cmd =
     $ output_path_term
     $ sort_choices_term
     $ sort_rules_term) in
-  (cmdline_term, info)
+  Cmd.v info cmdline_term
 
 let gen_cmd =
   let config lang grammar out_dir =
@@ -229,9 +229,9 @@ let gen_cmd =
       https://github.com/returntocorp/ocaml-tree-sitter/issues.";
   ] in
   let version = "0.0.0" in
-  let info = Term.info ~version ~doc ~man "gen" in
+  let info = Cmd.info ~version ~doc ~man "gen" in
 
-  (cmdline_term, info)
+  Cmd.v info cmdline_term
 
 let root_cmd =
   let root_term = Term.(ret (const ((`Help (`Pager, None))))) in
@@ -245,16 +245,17 @@ let root_cmd =
       https://github.com/returntocorp/ocaml-tree-sitter/issues.";
   ] in
   let doc = "Generate OCaml parsers based on tree-sitter grammars" in
-  let info = Term.info ~man ~doc "ocaml-tree-sitter" in
+  let info = Cmd.info ~man ~doc "ocaml-tree-sitter" in
   (root_term, info)
 
 let subcommands = [gen_cmd; simplify_cmd; to_js_cmd]
 
 let parse_command_line () : cmd_conf =
-  match Term.eval_choice root_cmd subcommands with
-  | `Error _ -> exit 1
-  | `Version | `Help -> exit 0
-  | `Ok conf -> conf
+  let root_term, info = root_cmd in
+  match Cmd.eval_value (Cmd.group info ~default:root_term subcommands) with
+  | Ok (`Ok conf) -> conf
+  | Ok (`Version | `Help) -> exit 0
+  | Error _ -> exit 1
 
 let main () =
   Printexc.record_backtrace true;
